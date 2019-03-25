@@ -21,6 +21,8 @@ require([
     }
 
     console.log('Initialized');
+
+    window.addEventListener('hashchange', () => location.reload());
   });
 
   function init (cb) {
@@ -71,7 +73,41 @@ require([
   }
 
   function render (cb) {
-    coords[generate1D([0, 0])] = 1;
+    let coord = _.map(location.hash.slice(1).split(','), _.toInteger);
+
+    // coord = [2, 2, 17, 15]; // x dominant (0 < slope <= 1)
+    // coord = [17, 15, 2, 2]; // x dominant (-1 <= slope < 0)
+    // coord = [10, 10, 20, 30]; // y dominant (1 < slope)
+    // coord = [20, 30, 10, 10]; // y dominant (slope < -1)
+
+    // coord = [2, 2, 15, 15]; // slope = 1
+    // coord = [15, 15, 2, 2]; // slope = -1
+
+    // coord = [10, 10, 20, 10]; // x dominant (slope = 0+)
+    // coord = [20, 10, 10, 10]; // x dominant (slope = 0-)
+    // coord = [10, 10, 10, 20]; // y dominant (slope = 0+)
+    // coord = [10, 20, 10, 10]; // y dominant (slope = 0-)
+
+    // solve path
+    const slope = (coord[3] - coord[1]) / (coord[2] - coord[0]);
+    const isXDominant = 0 <= Math.abs(slope) && Math.abs(slope) < 1;
+
+    const diff = isXDominant ? coord[2] - coord[0] : coord[3] - coord[1];
+    const dist = Math.abs(diff);
+    const sign = [Math.sign(coord[2] - coord[0]), Math.sign(coord[3] - coord[1])]; // Math.sign(diff);
+
+    const dominantWeight = isXDominant? [1, 0] : [0, 1];
+
+    for (let i = 0; i <= dist; i++) {
+      // using closed form
+
+      const k = _.round((isXDominant ? Math.abs(slope) : 1 / Math.abs(slope)) * i);
+
+      coords[generate1D([
+        coord[0] + (i * dominantWeight[0] + k * !dominantWeight[0]) * sign[0],
+        coord[1] + (i * dominantWeight[1] + k * !dominantWeight[1]) * sign[1]
+      ])] = 1;
+    }
 
     cb();
   }
@@ -82,6 +118,12 @@ require([
 
     app.stage.addChild(g); // append stage
 
+    const renderDots = _.flowRight(
+      _.spread(_.bind(g.drawRect, g)),
+      _.curryRight(_.map, 2)(arg => arg * pixelSize)
+    );
+    const generate2dQuadrant = _.flowRight(setQuadrant, generate2D);
+
     app.ticker.add(() => { // callback called each frame
       if (changed === true) { // caching
         changed = false;
@@ -91,14 +133,8 @@ require([
 
         _.forEach(coords, (coord, ind) => {
           if (coord !== 0) {
-            _.flowRight( // render dots
-              _.spread(_.bind(g.drawRect, g)),
-              _.curryRight(_.map, 2)(arg => arg * pixelSize)
-            )([
-              ..._.flowRight( // generate 2d coords
-                setQuadrant,
-                generate2D
-              )(ind),
+            renderDots([
+              ...generate2dQuadrant(ind), // generate quadrant coords (using 1d coord)
               1, 1
             ]);
           }
@@ -111,16 +147,29 @@ require([
 
   /* tools */
 
+  /**
+   * 1D -> 2D
+   * 
+   * @param {Number} ind 
+   */
   function generate2D (ind) {
-    // 1d -> 2d
     return [ind % env.width, _.parseInt(ind / env.width) + 1];
   }
 
+  /**
+   * 2D -> 1D
+   * 
+   * @param {[Number, Number]} param0 
+   */
   function generate1D ([x, y]) {
-    // 2d -> 1d
     return x + y * env.width;
   }
 
+  /**
+   * Set quadrant coordinates (origin = [leftmost, bottommost])
+   * 
+   * @param {[Number, Number]} param0 
+   */
   function setQuadrant ([x, y]) {
     return [x, env.height - y];
   }
