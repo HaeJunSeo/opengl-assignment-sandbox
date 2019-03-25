@@ -2,5 +2,5 @@
 todos
 
 * mouse location: (x, y)
-* canvas width, height
+* ~canvas width, height~
 * customize vector
