@@ -3,7 +3,8 @@ const env = {
   pixelSize: 5
 };
 
-let app, coords, changed = false;
+let app, msgEl;
+let coords, changed = false;
 
 require([
   'https://cdnjs.cloudflare.com/ajax/libs/async/2.6.1/async.min.js',
@@ -23,6 +24,8 @@ require([
     console.log('Initialized');
 
     window.addEventListener('hashchange', () => location.reload());
+
+    app.view.addEventListener('pointermove', mouseMove);
   });
 
   function init (cb) {
@@ -68,6 +71,10 @@ require([
         return Reflect.set(...args);
       }
     });
+
+    /* init msg element */
+    msgEl = document.createElement('p');
+    document.body.appendChild(msgEl);
 
     cb();
   }
@@ -143,6 +150,12 @@ require([
     });
 
     cb();
+  }
+
+  /* events */
+  function mouseMove ({ offsetX, offsetY }) {
+    const coord = _.map([offsetX / env.pixelSize, env.height - offsetY / env.pixelSize], _.toInteger);
+    msgEl.innerText = `[${coord}]: ${coords[generate1D(coord)]}`;
   }
 
   /* tools */
