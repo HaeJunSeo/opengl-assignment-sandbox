@@ -1,3 +1,11 @@
+/**
+ * Opengl Assignment sandbox
+ * 
+ * @author HaeJun Seo
+ * @since March 26, 2019
+ */
+
+/* set global environment variables */
 const env = {
   width: 150, height: 100,
   pixelSize: 5
@@ -6,10 +14,10 @@ const env = {
 let app, msgEl;
 let coords, changed = false;
 
-require([
-  'https://cdnjs.cloudflare.com/ajax/libs/async/2.6.1/async.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/pixi.js/4.8.6/pixi.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.11/lodash.min.js'
+require([ // require js (import modules)
+  'https://cdnjs.cloudflare.com/ajax/libs/async/2.6.1/async.min.js', // straight-forward function
+  'https://cdnjs.cloudflare.com/ajax/libs/pixi.js/4.8.6/pixi.min.js', // WebGL
+  'https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.11/lodash.min.js' // functional programming
 ], (async, PIXI, _) => {
   async.waterfall([
     init,
@@ -24,7 +32,6 @@ require([
     console.log('Initialized');
 
     window.addEventListener('hashchange', () => location.reload());
-
     app.view.addEventListener('pointermove', mouseMove);
   });
 
@@ -32,12 +39,12 @@ require([
     // disable antialias
     PIXI.settings.SCALE_MODE = PIXI.SCALE_MODES.NEAREST;
 
-    app = new PIXI.Application({
+    app = new PIXI.Application({ // create canvas element
       width: env.width * env.pixelSize, height: env.height * env.pixelSize,
       backgroundColor: 0xffffff
     });
 
-    document.body.appendChild(app.view);
+    document.body.appendChild(app.view); // append to the DOM
 
     cb();
   }
