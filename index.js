@@ -87,41 +87,16 @@ require([ // require js (import modules)
   }
 
   function render (cb) {
-    let coord = _.map(location.hash.slice(1).split(','), _.toInteger);
+    // init input coord ([x1, y1, x2, y2])
+    const hash = window.location.hash;
+    // let coord = (hash === '') ? [10, 12, 4, 26] : _.map(hash.slice(1).split(','), _.toInteger);
 
-    // coord = [2, 2, 17, 15]; // x dominant (0 < slope <= 1)
-    // coord = [17, 15, 2, 2]; // x dominant (-1 <= slope < 0)
-    // coord = [10, 10, 20, 30]; // y dominant (1 < slope)
-    // coord = [20, 30, 10, 10]; // y dominant (slope < -1)
-
-    // coord = [2, 2, 15, 15]; // slope = 1
-    // coord = [15, 15, 2, 2]; // slope = -1
-
-    // coord = [10, 10, 20, 10]; // x dominant (slope = 0+)
-    // coord = [20, 10, 10, 10]; // x dominant (slope = 0-)
-    // coord = [10, 10, 10, 20]; // y dominant (slope = 0+)
-    // coord = [10, 20, 10, 10]; // y dominant (slope = 0-)
+    let coord = [10, 30, 19, 14];
 
     // solve path
-    const slope = (coord[3] - coord[1]) / (coord[2] - coord[0]);
-    const isXDominant = 0 <= Math.abs(slope) && Math.abs(slope) < 1;
+    performance(solvePath_DDA, coord, coords);
 
-    const diff = isXDominant ? coord[2] - coord[0] : coord[3] - coord[1];
-    const dist = Math.abs(diff);
-    const sign = [Math.sign(coord[2] - coord[0]), Math.sign(coord[3] - coord[1])]; // Math.sign(diff);
-
-    const dominantWeight = isXDominant? [1, 0] : [0, 1];
-
-    for (let i = 0; i <= dist; i++) {
-      // using closed form
-
-      const k = _.round((isXDominant ? Math.abs(slope) : 1 / Math.abs(slope)) * i);
-
-      coords[generate1D([
-        coord[0] + (i * dominantWeight[0] + k * !dominantWeight[0]) * sign[0],
-        coord[1] + (i * dominantWeight[1] + k * !dominantWeight[1]) * sign[1]
-      ])] = 1;
-    }
+    // solvePath_Bresenham(coord, coords);
 
     cb();
   }
@@ -192,5 +167,85 @@ require([ // require js (import modules)
    */
   function setQuadrant ([x, y]) {
     return [x, env.height - y];
+  }
+
+  /**
+   * calculuate run-time
+   * 
+   * @param cb target function
+   * @param args arguments
+   */
+  function performance (cb, ...args) {
+    const s = window.performance.now();
+    cb(...args);
+    console.log(`>> ${window.performance.now() - s}ms`);
+  }
+
+  /**
+   * Solve path (DDA line drawing algorithm)
+   * 
+   * @param coord input coord
+   * @param coords coords array
+   */
+  function solvePath_DDA (coord, coords) {
+    // init constants
+    const dx = coord[2] - coord[0], avDx = Math.abs(dx);
+    const dy = coord[3] - coord[1], avDy = Math.abs(dy);
+
+    const isXDominant = avDx >= avDy;
+
+    let slope = dy / dx;
+    let diff, addSlope = 0, sign;
+
+    if (isXDominant) {
+      diff = dx;
+    } else {
+      diff = dy;
+      slope = 1 / slope; // reciprocal num.
+    }
+
+    sign = Math.sign(diff);
+
+    for (let i = 0; Math.abs(i) <= Math.abs(diff); i += sign) {
+      if (isXDominant) {
+        coords[generate1D([
+          coord[0] + i,
+          coord[1] + Math.round(addSlope)
+        ])] = 1;
+      } else {
+        coords[generate1D([
+          coord[0] + Math.round(addSlope),
+          coord[1] + i
+        ])] = 1;
+      }
+
+      addSlope += Math.abs(slope);
+    }
+  }
+
+  /**
+   * Solve path (Bresenham line drawing algorithm)
+   * 
+   * @param coord input coord
+   * @param coords coords array
+   */
+  function solvePath_Bresenham (coord, coords) {
+    // define constants
+    /*
+    const dx = coord[2] - coord[0], dx2 = dx * 2;
+    const dy = coord[3] - coord[1], dy2 = dy * 2;
+
+    const isXDominant = solveIsXDominant(coord);
+    const dist = solveDistance(coord);
+
+    let prev = dy2 - dx;
+
+    for (let i = 1; i <= dist; i++) {
+      coords[generate1D([
+        coord[0] + i,
+        coord[1] + i
+      ])] = 1;
+    }
+    */
   }
 });
