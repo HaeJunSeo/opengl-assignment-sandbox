@@ -11,7 +11,7 @@ const env = {
   pixelSize: 5
 };
 
-let app, msgEl;
+let app, coordMsgEl, performanceMsgEl;
 let coords, changed = false;
 
 require([ // require js (import modules)
@@ -79,9 +79,12 @@ require([ // require js (import modules)
       }
     });
 
-    /* init msg element */
-    msgEl = document.createElement('p');
-    document.body.appendChild(msgEl);
+    /* init msg elements */
+    performanceMsgEl = document.createElement('p');
+    document.body.appendChild(performanceMsgEl);
+
+    coordMsgEl = document.createElement('p');
+    document.body.appendChild(coordMsgEl);
 
     cb();
   }
@@ -89,9 +92,9 @@ require([ // require js (import modules)
   function render (cb) {
     // init input coord ([x1, y1, x2, y2])
     const hash = window.location.hash;
-    // let coord = (hash === '') ? [10, 12, 4, 26] : _.map(hash.slice(1).split(','), _.toInteger);
+    let coord = (hash === '') ? [10, 12, 4, 26] : _.map(hash.slice(1).split(','), _.toInteger);
 
-    let coord = [10, 30, 19, 14];
+    // let coord = [10, 30, 19, 14];
 
     // solve path
     performance(solvePath_DDA, coord, coords);
@@ -137,7 +140,7 @@ require([ // require js (import modules)
   /* events */
   function mouseMove ({ offsetX, offsetY }) {
     const coord = _.map([offsetX / env.pixelSize, env.height - offsetY / env.pixelSize], _.toInteger);
-    msgEl.innerText = `[${coord}]: ${coords[generate1D(coord)]}`;
+    coordMsgEl.innerText = `[${coord}]: ${coords[generate1D(coord)]}`;
   }
 
   /* tools */
@@ -178,7 +181,8 @@ require([ // require js (import modules)
   function performance (cb, ...args) {
     const s = window.performance.now();
     cb(...args);
-    console.log(`>> ${window.performance.now() - s}ms`);
+
+    performanceMsgEl.innerText = `>> ${window.performance.now() - s}ms`;
   }
 
   /**
