@@ -221,7 +221,7 @@ require([ // require js (import modules)
       slope = 1 / slope; // reciprocal num.
     }
 
-    let diffSign = Math.sign(diff);
+    let diffSign = 1 | Math.sign(diff);
 
     // calculate path
     for (let i = 0; i * diffSign <= diff * diffSign; i += diffSign) {
@@ -254,8 +254,8 @@ require([ // require js (import modules)
     const isXDominant = adx > ady;
     const diff = isXDominant ? dx : dy;
 
-    const diffSign = Math.sign(diff);
-    const slopeSign = isXDominant ? Math.sign(dy) : Math.sign(dx);
+    const diffSign = 1 | Math.sign(diff); // OR operator: avoid 'sign is 0' exception
+    const slopeSign = 1 | (isXDominant ? Math.sign(dy) : Math.sign(dx));
 
     // calculate p_i (prev p)
     let prev = isXDominant ? dy2 - adx : dx2 - ady;
