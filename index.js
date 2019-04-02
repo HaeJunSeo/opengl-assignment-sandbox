@@ -107,12 +107,13 @@ require([ // require js (import modules)
     // coord = [10, 10, 14, 19]; // slope+, diff+
     // coord = [10, 10, 6, 19]; // slope-, diff+
     // coord = [6, 19, 10, 10]; // slope-, diff-
-    coord = [14, 19, 10, 10]; // slope+, diff-
+    // coord = [14, 19, 10, 10]; // slope+, diff-
+
+    document.title = `Bresenham algorithm: [${coord}]`;
 
     // solve path
-    performance(solvePath_DDA, coord);
-
-    // performance(solvePath_Bresenham, coord);
+    // performance(solvePath_DDA, coord);
+    performance(solvePath_Bresenham, coord);
 
     cb();
   }
@@ -222,6 +223,7 @@ require([ // require js (import modules)
 
     let diffSign = Math.sign(diff);
 
+    // calculate path
     for (let i = 0; i * diffSign <= diff * diffSign; i += diffSign) {
       if (isXDominant) {
         coords[generate1D([
@@ -245,6 +247,7 @@ require([ // require js (import modules)
    * @param coord input coord
    */
   function solvePath_Bresenham (coord) {
+    // init constants
     const dx = coord[2] - coord[0], adx = Math.abs(dx), dx2 = adx + adx;
     const dy = coord[3] - coord[1], ady = Math.abs(dy), dy2 = ady + ady;
 
@@ -254,16 +257,18 @@ require([ // require js (import modules)
     const diffSign = Math.sign(diff);
     const slopeSign = isXDominant ? Math.sign(dy) : Math.sign(dx);
 
+    // calculate p_i (prev p)
     let prev = isXDominant ? dy2 - adx : dx2 - ady;
 
+    // calculate path
     for (let i = 0; i * diffSign <= diff * diffSign; i += diffSign) {
       if (isXDominant) {
-        coords[generate1D([
+        coords[generate1D([ // draw
           coord[0] + i,
           coord[1]
         ])] = 1;
 
-        if (prev >= 0) {
+        if (prev >= 0) { // calculate p_{i + 1} (new p)
           coord[1] += slopeSign;
           prev -= dx2;
         }
@@ -280,7 +285,7 @@ require([ // require js (import modules)
           prev -= dy2;
         }
 
-        prev += dx2;
+        prev += dx2; // calculate p_{i + 1} (new p)
       }
     }
   }
