@@ -39,6 +39,9 @@ require([ // require js (import modules)
     // disable antialias
     PIXI.settings.SCALE_MODE = PIXI.SCALE_MODES.NEAREST;
 
+    // skip init message
+    PIXI.utils.skipHello();
+
     app = new PIXI.Application({ // create canvas element
       width: env.width * env.pixelSize, height: env.height * env.pixelSize,
       backgroundColor: 0xffffff
@@ -94,12 +97,22 @@ require([ // require js (import modules)
     const hash = window.location.hash;
     let coord = (hash === '') ? [10, 12, 4, 26] : _.map(hash.slice(1).split(','), _.toInteger);
 
-    // let coord = [10, 30, 19, 14];
+    // x dominant
+    // coord = [10, 10, 19, 14]; // slope+, diff+
+    // coord = [10, 10, 19, 6]; // slope-, diff+
+    // coord = [19, 6, 10, 10]; // slope-, diff-
+    // coord = [19, 14, 10, 10]; // slope+, diff-
+
+    // y dominant
+    // coord = [10, 10, 14, 19]; // slope+, diff+
+    // coord = [10, 10, 6, 19]; // slope-, diff+
+    // coord = [6, 19, 10, 10]; // slope-, diff-
+    coord = [14, 19, 10, 10]; // slope+, diff-
 
     // solve path
-    performance(solvePath_DDA, coord, coords);
+    performance(solvePath_DDA, coord);
 
-    // solvePath_Bresenham(coord, coords);
+    // performance(solvePath_Bresenham, coord);
 
     cb();
   }
@@ -189,17 +202,16 @@ require([ // require js (import modules)
    * Solve path (DDA line drawing algorithm)
    * 
    * @param coord input coord
-   * @param coords coords array
    */
-  function solvePath_DDA (coord, coords) {
+  function solvePath_DDA (coord) {
     // init constants
-    const dx = coord[2] - coord[0], avDx = Math.abs(dx);
-    const dy = coord[3] - coord[1], avDy = Math.abs(dy);
+    const dx = coord[2] - coord[0], adx = Math.abs(dx);
+    const dy = coord[3] - coord[1], ady = Math.abs(dy);
 
-    const isXDominant = avDx >= avDy;
+    const isXDominant = adx >= ady;
 
-    let slope = dy / dx;
-    let diff, addSlope = 0, sign;
+    let slope = dy / dx, addSlope = 0;
+    let diff;
 
     if (isXDominant) {
       diff = dx;
@@ -208,9 +220,9 @@ require([ // require js (import modules)
       slope = 1 / slope; // reciprocal num.
     }
 
-    sign = Math.sign(diff);
+    let diffSign = Math.sign(diff);
 
-    for (let i = 0; Math.abs(i) <= Math.abs(diff); i += sign) {
+    for (let i = 0; i * diffSign <= diff * diffSign; i += diffSign) {
       if (isXDominant) {
         coords[generate1D([
           coord[0] + i,
@@ -223,7 +235,7 @@ require([ // require js (import modules)
         ])] = 1;
       }
 
-      addSlope += Math.abs(slope);
+      addSlope += slope * diffSign;
     }
   }
 
@@ -231,25 +243,45 @@ require([ // require js (import modules)
    * Solve path (Bresenham line drawing algorithm)
    * 
    * @param coord input coord
-   * @param coords coords array
    */
-  function solvePath_Bresenham (coord, coords) {
-    // define constants
-    /*
-    const dx = coord[2] - coord[0], dx2 = dx * 2;
-    const dy = coord[3] - coord[1], dy2 = dy * 2;
+  function solvePath_Bresenham (coord) {
+    const dx = coord[2] - coord[0], adx = Math.abs(dx), dx2 = adx + adx;
+    const dy = coord[3] - coord[1], ady = Math.abs(dy), dy2 = ady + ady;
 
-    const isXDominant = solveIsXDominant(coord);
-    const dist = solveDistance(coord);
+    const isXDominant = adx > ady;
+    const diff = isXDominant ? dx : dy;
 
-    let prev = dy2 - dx;
+    const diffSign = Math.sign(diff);
+    const slopeSign = isXDominant ? Math.sign(dy) : Math.sign(dx);
 
-    for (let i = 1; i <= dist; i++) {
-      coords[generate1D([
-        coord[0] + i,
-        coord[1] + i
-      ])] = 1;
+    let prev = isXDominant ? dy2 - adx : dx2 - ady;
+
+    for (let i = 0; i * diffSign <= diff * diffSign; i += diffSign) {
+      if (isXDominant) {
+        coords[generate1D([
+          coord[0] + i,
+          coord[1]
+        ])] = 1;
+
+        if (prev >= 0) {
+          coord[1] += slopeSign;
+          prev -= dx2;
+        }
+
+        prev += dy2;
+      } else {
+        coords[generate1D([
+          coord[0],
+          coord[1] + i
+        ])] = 1;
+
+        if (prev >= 0) {
+          coord[0] += slopeSign;
+          prev -= dy2;
+        }
+
+        prev += dx2;
+      }
     }
-    */
   }
 });
