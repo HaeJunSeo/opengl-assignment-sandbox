@@ -2,7 +2,7 @@
  * Opengl Assignment sandbox
  * 
  * @author HaeJun Seo
- * @since March 26, 2019
+ * @since April 2, 2019
  */
 
 /* set global environment variables */
@@ -223,7 +223,7 @@ require([ // require js (import modules)
 
     let diffSign = 1 | Math.sign(diff);
 
-    // calculate path
+    // drawing path loop
     for (let i = 0; i * diffSign <= diff * diffSign; i += diffSign) {
       if (isXDominant) {
         coords[generate1D([
@@ -248,8 +248,8 @@ require([ // require js (import modules)
    */
   function solvePath_Bresenham (coord) {
     // init constants
-    const dx = coord[2] - coord[0], adx = Math.abs(dx), dx2 = adx + adx;
-    const dy = coord[3] - coord[1], ady = Math.abs(dy), dy2 = ady + ady;
+    const dx = coord[2] - coord[0], adx = Math.abs(dx), dx2 = adx << 1;
+    const dy = coord[3] - coord[1], ady = Math.abs(dy), dy2 = ady << 1;
 
     const isXDominant = adx > ady;
     const diff = isXDominant ? dx : dy;
@@ -260,32 +260,27 @@ require([ // require js (import modules)
     // calculate p_i (prev p)
     let prev = isXDominant ? dy2 - adx : dx2 - ady;
 
-    // calculate path
+    // drawing path loop
     for (let i = 0; i * diffSign <= diff * diffSign; i += diffSign) {
-      if (isXDominant) {
-        coords[generate1D([ // draw
-          coord[0] + i,
-          coord[1]
-        ])] = 1;
+      coords[generate1D([ // draw
+        coord[0] + i * isXDominant,
+        coord[1] + i * !isXDominant
+      ])] = 1;
 
+      if (isXDominant) {
         if (prev >= 0) { // calculate p_{i + 1} (new p)
           coord[1] += slopeSign;
           prev -= dx2;
         }
 
-        prev += dy2;
+        prev += dy2; // calculate p_{i + 1} (new p)
       } else {
-        coords[generate1D([
-          coord[0],
-          coord[1] + i
-        ])] = 1;
-
         if (prev >= 0) {
           coord[0] += slopeSign;
           prev -= dy2;
         }
 
-        prev += dx2; // calculate p_{i + 1} (new p)
+        prev += dx2;
       }
     }
   }
