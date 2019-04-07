@@ -7,7 +7,7 @@
 
 /* set global environment variables */
 const env = {
-  width: 150, height: 100,
+  width: 100, height: 100,
   pixelSize: 5
 };
 
@@ -97,6 +97,11 @@ require([ // require js (import modules)
     const hash = window.location.hash;
     let coord = (hash === '') ? [10, 12, 4, 26] : _.map(hash.slice(1).split(','), _.toInteger);
 
+    const g = new PIXI.Graphics();
+    g.lineStyle(2, 0xff0000);
+    g.moveTo((coord[0] + 0.5) * env.pixelSize, (env.height - coord[1] - 0.5) * env.pixelSize);
+    g.lineTo((coord[2] + 0.5) * env.pixelSize, (env.height - coord[3] - 0.5) * env.pixelSize);
+
     // x dominant
     // coord = [10, 10, 19, 14]; // slope+, diff+
     // coord = [10, 10, 19, 6]; // slope-, diff+
@@ -109,16 +114,17 @@ require([ // require js (import modules)
     // coord = [6, 19, 10, 10]; // slope-, diff-
     // coord = [14, 19, 10, 10]; // slope+, diff-
 
-    document.title = `Bresenham algorithm: [${coord}]`;
+    document.title = `[${coord}]`;
 
     // solve path
     // performance(solvePath_DDA, coord);
-    performance(solvePath_Bresenham, coord);
+    // performance(solvePath_Bresenham, coord);
+    solvePath_BresenhamWithAntialias(coord);
 
-    cb();
+    cb(null, g);
   }
 
-  function setTickers (cb) {
+  function setTickers (_g, cb) {
     const g = new PIXI.Graphics();
     const { pixelSize } = env;
 
@@ -135,10 +141,11 @@ require([ // require js (import modules)
         changed = false;
 
         g.clear();
-        g.beginFill(0x000000);
 
         _.forEach(coords, (coord, ind) => {
           if (coord !== 0) {
+            g.beginFill(0xffffff - 0x111111 * _.toSafeInteger(coord * 15));
+
             renderDots([
               ...generate2dQuadrant(ind), // generate quadrant coords (using 1d coord)
               1, 1
@@ -147,6 +154,8 @@ require([ // require js (import modules)
         });
       }
     });
+    
+    app.stage.addChild(_g);
 
     cb();
   }
@@ -200,7 +209,7 @@ require([ // require js (import modules)
   }
 
   /**
-   * Solve path (DDA line drawing algorithm)
+   * draw path (DDA line drawing algorithm)
    * 
    * @param coord input coord
    */
@@ -242,7 +251,7 @@ require([ // require js (import modules)
   }
 
   /**
-   * Solve path (Bresenham line drawing algorithm)
+   * draw path (Bresenham line drawing algorithm)
    * 
    * @param coord input coord
    */
@@ -262,6 +271,7 @@ require([ // require js (import modules)
 
     // drawing path loop
     for (let i = 0; i * diffSign <= diff * diffSign; i += diffSign) {
+      console.log(prev, prev / adx);
       coords[generate1D([ // draw
         coord[0] + i * isXDominant,
         coord[1] + i * !isXDominant
@@ -281,6 +291,56 @@ require([ // require js (import modules)
         }
 
         prev += dx2;
+      }
+    }
+  }
+
+  function solvePath_BresenhamWithAntialias (coord) {
+    const dx = Math.abs(coord[0] - coord[2]), sx = coord[0] < coord[2] ? 1 : -1;
+    const dy = Math.abs(coord[1] - coord[3]), sy = coord[1] < coord[3] ? 1 : -1;
+
+    let err = dx - dy, e2, x2;
+    let ed = dx + dy == 0 ? 1 : Math.sqrt(dx * dx + dy * dy);
+
+    while (true) {
+      coords[generate1D([
+        coord[0],
+        coord[1]
+      ])] = 1 - Math.abs(err - dx + dy) / ed;
+
+      e2 = err;
+      x2 = coord[0];
+
+      if (2 * e2 >= -dx) {
+        if (coord[0] === coord[2]) {
+          break;
+        }
+
+        if (e2 + dy < ed) {
+          coords[generate1D([
+            coord[0],
+            coord[1] + sy
+          ])] = 1 - (e2 + dy) / ed;
+        }
+
+        err -= dy;
+        coord[0] += sx;
+      }
+
+      if (2 * e2 <= dy) {
+        if (coord[1] === coord[3]) {
+          break;
+        }
+
+        if (dx - e2 < ed) {
+          coords[generate1D([
+            x2 + sx,
+            coord[1]
+          ])] = 1 - (dx - e2) / ed;
+        }
+
+        err += dx;
+        coord[1] += sy;
       }
     }
   }
