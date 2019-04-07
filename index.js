@@ -8,17 +8,26 @@
 /* set global environment variables */
 const env = {
   width: 100, height: 100,
-  pixelSize: 5
+  pixelSize: 5,
+
+  controller: {
+    antialias: true,
+    grid: true,
+    line: false
+  }
 };
 
 let app, coordMsgEl, performanceMsgEl;
+let gui;
+
 let coords, changed = false;
 
 require([ // require js (import modules)
   'https://cdnjs.cloudflare.com/ajax/libs/async/2.6.1/async.min.js', // straight-forward function
   'https://cdnjs.cloudflare.com/ajax/libs/pixi.js/4.8.6/pixi.min.js', // WebGL
-  'https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.11/lodash.min.js' // functional programming
-], (async, PIXI, _) => {
+  'https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.11/lodash.min.js', // functional programming
+  'https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.6/dat.gui.min.js' // GUI
+], (async, PIXI, _, dat) => {
   async.waterfall([
     init,
     renderInit,
@@ -36,6 +45,8 @@ require([ // require js (import modules)
   });
 
   function init (cb) {
+    /* webgl module init */
+
     // disable antialias
     PIXI.settings.SCALE_MODE = PIXI.SCALE_MODES.NEAREST;
 
@@ -48,6 +59,9 @@ require([ // require js (import modules)
     });
 
     document.body.appendChild(app.view); // append to the DOM
+
+    /* GUI module init */
+    gui = new dat.GUI();
 
     cb();
   }
@@ -74,6 +88,9 @@ require([ // require js (import modules)
     // append stage
     app.stage.addChild(g);
 
+    // add to the GUI panel
+    gui.add(env.controller, 'grid').onChange(b => g.visible = b);
+
     /* init coords array */
     coords = new Proxy(_.fill(Array(width * height), 0), {
       set (...args) {
@@ -97,23 +114,17 @@ require([ // require js (import modules)
     const hash = window.location.hash;
     let coord = (hash === '') ? [10, 12, 4, 26] : _.map(hash.slice(1).split(','), _.toInteger);
 
-    const g = new PIXI.Graphics();
-    g.lineStyle(2, 0xff0000);
-    g.moveTo((coord[0] + 0.5) * env.pixelSize, (env.height - coord[1] - 0.5) * env.pixelSize);
-    g.lineTo((coord[2] + 0.5) * env.pixelSize, (env.height - coord[3] - 0.5) * env.pixelSize);
+    // draw line
+    const line = new PIXI.Graphics();
+    line.lineStyle(2, 0xff0000);
+    line.moveTo((coord[0] + 0.5) * env.pixelSize, (env.height - coord[1] - 0.5) * env.pixelSize);
+    line.lineTo((coord[2] + 0.5) * env.pixelSize, (env.height - coord[3] - 0.5) * env.pixelSize);
+    line.visible = false;
 
-    // x dominant
-    // coord = [10, 10, 19, 14]; // slope+, diff+
-    // coord = [10, 10, 19, 6]; // slope-, diff+
-    // coord = [19, 6, 10, 10]; // slope-, diff-
-    // coord = [19, 14, 10, 10]; // slope+, diff-
+    // add to the GUI panel
+    gui.add(env.controller, 'line').onChange(b => line.visible = b);
 
-    // y dominant
-    // coord = [10, 10, 14, 19]; // slope+, diff+
-    // coord = [10, 10, 6, 19]; // slope-, diff+
-    // coord = [6, 19, 10, 10]; // slope-, diff-
-    // coord = [14, 19, 10, 10]; // slope+, diff-
-
+    // set title
     document.title = `[${coord}]`;
 
     // solve path
@@ -121,10 +132,11 @@ require([ // require js (import modules)
     // performance(solvePath_Bresenham, coord);
     solvePath_BresenhamWithAntialias(coord);
 
-    cb(null, g);
+    cb(null, line);
   }
 
-  function setTickers (_g, cb) {
+  function setTickers (line, cb) {
+    /* draw pixel */
     const g = new PIXI.Graphics();
     const { pixelSize } = env;
 
@@ -154,8 +166,9 @@ require([ // require js (import modules)
         });
       }
     });
-    
-    app.stage.addChild(_g);
+
+    // add
+    app.stage.addChild(line);
 
     cb();
   }
@@ -271,7 +284,6 @@ require([ // require js (import modules)
 
     // drawing path loop
     for (let i = 0; i * diffSign <= diff * diffSign; i += diffSign) {
-      console.log(prev, prev / adx);
       coords[generate1D([ // draw
         coord[0] + i * isXDominant,
         coord[1] + i * !isXDominant
