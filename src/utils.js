@@ -1,3 +1,7 @@
+/**
+ * global utils
+ */
+
 define([
   env.cdn['lodash']
 ], (_) => {
@@ -30,7 +34,7 @@ define([
       const s = window.performance.now();
       cb(...args);
 
-      console.log(`⏱ performance >> ${window.performance.now() - s}ms`);
+      console.log(`⏱ ${cb.name} >> ${window.performance.now() - s}ms`);
     }
   }
 });
