@@ -6,7 +6,7 @@
  */
 
 /* set global variables */
-let app, coordMsgEl, performanceMsgEl;
+let app, coordMsgEl;
 let gui;
 
 let coords, changed = false;
@@ -15,8 +15,10 @@ require([ // require js (import modules)
   env.cdn['async'],
   env.cdn['pixijs'],
   env.cdn['lodash'],
-  env.cdn['datGUI']
-], (async, PIXI, _, dat) => {
+  env.cdn['datGUI'],
+
+  env.cdn['utils']
+], (async, PIXI, _, dat, utils) => {
   async.waterfall([
     init,
     renderInit,
@@ -27,7 +29,7 @@ require([ // require js (import modules)
       throw err;
     }
 
-    console.log('Initialized');
+    console.log('Initialized!');
 
     window.addEventListener('hashchange', () => location.reload());
     app.view.addEventListener('pointermove', mouseMove);
@@ -89,8 +91,6 @@ require([ // require js (import modules)
     });
 
     /* init msg elements */
-    performanceMsgEl = document.createElement('p');
-    document.body.appendChild(performanceMsgEl);
 
     coordMsgEl = document.createElement('p');
     document.body.appendChild(coordMsgEl);
@@ -117,8 +117,8 @@ require([ // require js (import modules)
     document.title = `[${coord}]`;
 
     // solve path
-    // performance(solvePath_DDA, coord);
-    performance(solvePath_Bresenham, coord);
+    // utils.performance(solvePath_DDA, coord);
+    utils.performance(solvePath_Bresenham, coord);
 
     cb(null, line);
   }
@@ -130,11 +130,16 @@ require([ // require js (import modules)
 
     app.stage.addChild(g); // append stage
 
+    // tools
     const renderDots = _.flowRight(
-      _.spread(_.bind(g.drawRect, g)),
-      _.curryRight(_.map, 2)(arg => arg * pixelSize)
+      _.spread(_.bind(g.drawRect, g)), // draw pixel
+      _.curryRight(_.map, 2)(arg => arg * pixelSize) // mapping factor
     );
-    const generate2dQuadrant = _.flowRight(setQuadrant, generate2D);
+
+    const generate2dQuadrant = _.flowRight(
+      ([x, y]) => [x, env.height - y], // set quadrant coordinates (origin: [leftmost, bottommost])
+      utils.generate2D
+    );
 
     app.ticker.add(() => { // callback called each frame
       if (changed === true) { // caching
@@ -164,49 +169,7 @@ require([ // require js (import modules)
   /* events */
   function mouseMove ({ offsetX, offsetY }) {
     const coord = _.map([offsetX / env.pixelSize, env.height - offsetY / env.pixelSize], _.toInteger);
-    coordMsgEl.innerText = `[${coord}]: ${coords[generate1D(coord)]}`;
-  }
-
-  /* tools */
-
-  /**
-   * 1D -> 2D
-   * 
-   * @param {Number} ind 
-   */
-  function generate2D (ind) {
-    return [ind % env.width, _.parseInt(ind / env.width) + 1];
-  }
-
-  /**
-   * 2D -> 1D
-   * 
-   * @param {[Number, Number]} param0 
-   */
-  function generate1D ([x, y]) {
-    return x + y * env.width;
-  }
-
-  /**
-   * Set quadrant coordinates (origin = [leftmost, bottommost])
-   * 
-   * @param {[Number, Number]} param0 
-   */
-  function setQuadrant ([x, y]) {
-    return [x, env.height - y];
-  }
-
-  /**
-   * calculuate run-time
-   * 
-   * @param cb target function
-   * @param args arguments
-   */
-  function performance (cb, ...args) {
-    const s = window.performance.now();
-    cb(...args);
-
-    performanceMsgEl.innerText = `>> ${window.performance.now() - s}ms`;
+    coordMsgEl.innerText = `[${coord}]: ${coords[utils.generate1D(coord)]}`;
   }
 
   /**
@@ -236,12 +199,12 @@ require([ // require js (import modules)
     // drawing path loop
     for (let i = 0; i * diffSign <= diff * diffSign; i += diffSign) {
       if (isXDominant) {
-        coords[generate1D([
+        coords[utils.generate1D([
           coord[0] + i,
           coord[1] + Math.round(addSlope)
         ])] = 1;
       } else {
-        coords[generate1D([
+        coords[utils.generate1D([
           coord[0] + Math.round(addSlope),
           coord[1] + i
         ])] = 1;
@@ -272,7 +235,7 @@ require([ // require js (import modules)
 
     // drawing path loop
     for (let i = 0; i * diffSign <= diff * diffSign; i += diffSign) {
-      coords[generate1D([ // draw
+      coords[utils.generate1D([ // draw
         coord[0] + i * isXDominant,
         coord[1] + i * !isXDominant
       ])] = 1;
