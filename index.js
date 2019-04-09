@@ -243,16 +243,18 @@ require([ // require js (import modules)
 
   function mouseUp ({ offsetX, offsetY }) {
     // set x2, y2
-    const o2c = offsetToCoord([offsetX, offsetY]);
-    
-    isDragging = false;
-    
-    guide.clear(); // clear draw guide
-
-    coords[2] = o2c[0];
-    coords[3] = o2c[1];
-
-    controller.drawFunction(coords, memory);
+    if (isDragging === true) {
+      const o2c = offsetToCoord([offsetX, offsetY]);
+      
+      isDragging = false;
+      
+      guide.clear(); // clear draw guide
+  
+      coords[2] = o2c[0];
+      coords[3] = o2c[1];
+  
+      controller.drawFunction(coords, memory);
+    }
   }
 
   function mouseOut () {
