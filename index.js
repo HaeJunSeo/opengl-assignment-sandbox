@@ -70,7 +70,8 @@ require([ // require js (import modules)
       drawFunctionName: 'line',
       drawFunctions: {
         'line': 'solvePath_Bresenham_line',
-        'circle': 'solvePath_Bresenham_circle'
+        'circle': 'solvePath_Bresenham_circle',
+        'rectangle': 'solvePath_Bresenham_rectangle'
       },
 
       clear () {
@@ -253,13 +254,17 @@ require([ // require js (import modules)
       coords[2] = o2c[0];
       coords[3] = o2c[1];
   
-      controller.drawFunction(coords, memory);
+      utils.performance(controller.drawFunction, coords, memory);
     }
   }
 
   function mouseOut () {
     // abort
-    guide.clear();
-    isDragging = false;
+    if (isDragging === true) {
+      guide.clear();
+      isDragging = false;
+  
+      console.warn('mouse is out');
+    }
   }
 });

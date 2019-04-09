@@ -14,6 +14,7 @@ define([
   };
   const correct = xs => [_.min(xs), _.max(xs)];
 
+  // circle
   const swapInd12 = _.curryRight(swapInd, 3)(1, 2);
   const correctedCoord = _.flowRight(
     swapInd12,
@@ -23,7 +24,7 @@ define([
     swapInd12
   );
 
-  return { // return draw functions
+  const drawFunctions = { // return draw functions
     /**
      * draw line (DDA line drawing algorithm)
      * 
@@ -80,10 +81,14 @@ define([
       let prev = isXDominant ? dy2 - adx : dx2 - ady;
 
       // drawing path loop
-      while (coord[0] !== coord[2] && coord[1] !== coord[3]) {
+      while (true) {
         draw(memory, coord[0], coord[1]);
 
         if (isXDominant) {
+          if (coord[0] === coord[2]) {
+            break;
+          }
+
           if (prev >= 0) { // calculate p_{i + 1} (new p)
             coord[1] += slopeSign;
             prev -= dx2;
@@ -92,6 +97,10 @@ define([
           coord[0] += diffSign;
           prev += dy2; // calculate p_{i + 1} (new p)
         } else {
+          if (coord[1] === coord[3]) {
+            break;
+          }
+
           if (prev >= 0) {
             coord[0] += slopeSign;
             prev -= dy2;
@@ -109,7 +118,7 @@ define([
      */
     solvePath_Bresenham_circle (coord, memory) {
       // init
-      // coord = correctedCoord(coord);
+      coord = correctedCoord(coord);
 
       const drawing = drawToMemory(memory);
 
@@ -148,6 +157,31 @@ define([
           prev += 2 * (x - y) + 1;
         }
       }
+    },
+
+    /**
+     * draw rectangle (using Bresenham algorithm)
+     * 
+     */
+    solvePath_Bresenham_rectangle (coord, memory) {
+      const drawLine = _.curryRight(drawFunctions.solvePath_Bresenham_line, 2)(memory);
+
+      _.forEach([
+        [coord[0], coord[1], coord[0], coord[3]],
+        [coord[0], coord[1], coord[2], coord[1]],
+        [coord[0], coord[3], coord[2], coord[3]],
+        [coord[2], coord[1], coord[2], coord[3]]
+      ], c => drawLine(c));
+    },
+
+    /**
+     * draw triangle (using Bresenham algorithm)
+     * 
+     */
+    solvePath_Bresenham_triangle (coord, memory) {
+      //
     }
-  }
+  };
+
+  return drawFunctions;
 })
