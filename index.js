@@ -66,15 +66,11 @@ require([ // require js (import modules)
     controller = {
       grid: true,
 
-      // drawFunction: draws['solvePath_Bresenham_line'],
-      drawFunction: draws['solvePath_Bresenham_circle'],
-      setDrawFunction: {
-        line () {
-          controller.drawFunction = draws['solvePath_Bresenham_line'];
-        },
-        circle () {
-          controller.drawFunction = draws['solvePath_Bresenham_circle'];
-        }
+      drawFunction: draws['solvePath_Bresenham_line'],
+      drawFunctionName: 'line',
+      drawFunctions: {
+        'line': 'solvePath_Bresenham_line',
+        'circle': 'solvePath_Bresenham_circle'
       },
 
       clear () {
@@ -136,8 +132,10 @@ require([ // require js (import modules)
     /* init draw function and darw-guide */
 
     // add draw actions
-    gui.add(controller.setDrawFunction, 'line');
-    gui.add(controller.setDrawFunction, 'circle');
+    gui.add(controller, 'drawFunctionName', controller.drawFunctions)
+      .onChange(name => controller.drawFunction = draws[name])
+      .name('draw');
+
     gui.add(controller, 'clear');
 
     // darw-guide
@@ -190,7 +188,7 @@ require([ // require js (import modules)
   /* tools */
 
   /**
-   * it's a functor that convert mouse offset to coordinates
+   * it's a functor that convert mouse offset field to coordinates field
    * 
    * @param {[Number, Number]} offset
    */
