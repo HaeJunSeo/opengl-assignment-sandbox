@@ -52,7 +52,7 @@ define([
       // drawing path loop
       for (let i = 0; i * diffSign <= diff * diffSign; i += diffSign) {
         if (isXDominant) {
-          drawing(memory, coord[0] + i, coord[1] + Math.round(addSlope));
+          drawing(coord[0] + i, coord[1] + Math.round(addSlope));
         } else {
           drawing(coord[0] + Math.round(addSlope), coord[1] + i);
         }
@@ -80,8 +80,8 @@ define([
       let prev = isXDominant ? dy2 - adx : dx2 - ady;
 
       // drawing path loop
-      for (let i = 0; i * diffSign <= diff * diffSign; i += diffSign) {
-        draw(memory, coord[0] + i * isXDominant, coord[1] + i * !isXDominant);
+      while (coord[0] !== coord[2] && coord[1] !== coord[3]) {
+        draw(memory, coord[0], coord[1]);
 
         if (isXDominant) {
           if (prev >= 0) { // calculate p_{i + 1} (new p)
@@ -89,6 +89,7 @@ define([
             prev -= dx2;
           }
 
+          coord[0] += diffSign;
           prev += dy2; // calculate p_{i + 1} (new p)
         } else {
           if (prev >= 0) {
@@ -96,6 +97,7 @@ define([
             prev -= dy2;
           }
 
+          coord[1] += diffSign;
           prev += dx2;
         }
       }
@@ -107,7 +109,7 @@ define([
      */
     solvePath_Bresenham_circle (coord, memory) {
       // init
-      coord = correctedCoord(coord);
+      // coord = correctedCoord(coord);
 
       const drawing = drawToMemory(memory);
 
