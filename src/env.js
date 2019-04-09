@@ -5,7 +5,8 @@ const env = {
     'lodash': 'https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.11/lodash.min.js', // functional programming
     'datGUI': 'https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.6/dat.gui.min.js', // GUI
 
-    'utils': './src/utils.js'
+    'utils': 'src/utils.js',
+    'draws': 'src/draws.js'
   },
 
   width: 40, height: 40,
