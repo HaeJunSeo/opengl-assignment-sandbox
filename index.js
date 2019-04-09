@@ -6,7 +6,7 @@
  */
 
 /* set global variables */
-let app, coordMsgEl;
+let app, msgEl;
 let gui;
 
 let coords = [0, 0, 0, 0], isDragging = false, drawFunction, guide;
@@ -38,7 +38,8 @@ require([ // require js (import modules)
     _.forEach([
       ['pointermove', mouseMove],
       ['pointerdown', mouseDown],
-      ['pointerup', mouseUp]
+      ['pointerup', mouseUp],
+      ['pointerout', mouseOut]
     ], _.spread(_.bind(app.view.addEventListener, app.view)));
   });
 
@@ -99,9 +100,9 @@ require([ // require js (import modules)
 
     /* init msg elements */
 
-    coordMsgEl = document.createElement('p');
-    coordMsgEl.innerText = `[0, 0]: ${memory[utils.generate1D([0, 0])]}`;
-    document.body.appendChild(coordMsgEl);
+    msgEl = document.createElement('p');
+    msgEl.innerText = `[0, 0]: ${memory[utils.generate1D([0, 0])]}`;
+    document.body.appendChild(msgEl);
 
     /* init draw function and guide */
 
@@ -127,7 +128,7 @@ require([ // require js (import modules)
     );
 
     const generate2dQuadrant = _.flowRight(
-      toQuadrantCoords,
+      inverseHeight,
       utils.generate2D
     );
 
@@ -156,7 +157,7 @@ require([ // require js (import modules)
   /* tools */
 
   /**
-   * convert mouse offset to coord functor
+   * it's a functor that convert mouse offset to coordinates
    * 
    * @param {[Number, Number]} offset
    */
@@ -165,11 +166,11 @@ require([ // require js (import modules)
   }
 
   /**
-   * convert coordinates to quadrant coordinates (origin: [leftmost, bottommost])
+   * inverse height
    * 
    * @param {[Number, Number]} coords
    */
-  function toQuadrantCoords ([x, y]) {
+  function inverseHeight ([x, y]) {
     return [x, env.height - y];
   }
 
@@ -177,9 +178,10 @@ require([ // require js (import modules)
 
   function mouseMove ({ offsetX, offsetY }) {
     const o2c = offsetToCoord([offsetX, offsetY]);
-    coordMsgEl.innerText = `[${o2c}]: ${memory[utils.generate1D(o2c)]}`;
+    msgEl.innerText = `[${o2c}]: ${memory[utils.generate1D(o2c)]}`;
 
     if (isDragging === true) {
+      // render draw guide
       guide.clear();
       guide.lineStyle(2, 0xff0000);
 
@@ -188,14 +190,21 @@ require([ // require js (import modules)
       coords[2] = o2c[0];
       coords[3] = o2c[1];
 
-      // guide.moveTo(toQuadrantCoords)
-
-      guide.moveTo(coords[0] * env.pixelSize, (env.height - coords[1]) * env.pixelSize);
-      guide.lineTo(coords[2] * env.pixelSize, (env.height - coords[3]) * env.pixelSize);
+      _.flowRight(
+        ([x1, y1, x2, y2]) => {
+          guide.moveTo(x1, y1);
+          guide.lineTo(x2, y2);
+        },
+        _.curryRight(_.map, 2)(c => c * env.pixelSize),
+        _.flatten,
+        _.curryRight(_.map, 2)(inverseHeight), // for pixijs
+        _.curryRight(_.chunk, 2)(2)
+      )(coords);
     }
   }
 
   function mouseDown ({ offsetX, offsetY}) {
+    // set x1, y1
     const o2c = offsetToCoord([offsetX, offsetY]);
 
     coords[0] = o2c[0];
@@ -205,15 +214,22 @@ require([ // require js (import modules)
   }
 
   function mouseUp ({ offsetX, offsetY }) {
+    // set x2, y2
     const o2c = offsetToCoord([offsetX, offsetY]);
     
     isDragging = false;
     
-    guide.clear();
+    guide.clear(); // clear draw guide
 
     coords[2] = o2c[0];
     coords[3] = o2c[1];
 
     drawFunction(coords, memory);
+  }
+
+  function mouseOut () {
+    // abort
+    guide.clear();
+    isDragging = false;
   }
 });

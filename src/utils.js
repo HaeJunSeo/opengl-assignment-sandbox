@@ -31,15 +31,6 @@ define([
       cb(...args);
 
       console.log(`⏱ performance >> ${window.performance.now() - s}ms`);
-    },
-
-    /**
-     * offset to coord functor
-     * 
-     * @param {[int, int]} offset
-     */
-    offsetToCoord ([offsetX, offsetY]) {
-      return _.map([offsetX / env.pixelSize, env.height - offsetY / env.pixelSize], _.toInteger);
     }
   }
 });
