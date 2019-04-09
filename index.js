@@ -7,8 +7,8 @@
 
 /* set global environment variables */
 const env = {
-  width: 100, height: 100,
-  pixelSize: 5,
+  width: 40, height: 40,
+  pixelSize: 10,
 
   controller: {
     antialias: true,
@@ -116,7 +116,7 @@ require([ // require js (import modules)
 
     // draw line
     const line = new PIXI.Graphics();
-    line.lineStyle(2, 0xff0000);
+    line.lineStyle(1, 0xff0000);
     line.moveTo((coord[0] + 0.5) * env.pixelSize, (env.height - coord[1] - 0.5) * env.pixelSize);
     line.lineTo((coord[2] + 0.5) * env.pixelSize, (env.height - coord[3] - 0.5) * env.pixelSize);
     line.visible = false;
@@ -303,56 +303,6 @@ require([ // require js (import modules)
         }
 
         prev += dx2;
-      }
-    }
-  }
-
-  function solvePath_BresenhamWithAntialias (coord) {
-    const dx = Math.abs(coord[0] - coord[2]), sx = coord[0] < coord[2] ? 1 : -1;
-    const dy = Math.abs(coord[1] - coord[3]), sy = coord[1] < coord[3] ? 1 : -1;
-
-    let err = dx - dy, e2, x2;
-    let ed = dx + dy == 0 ? 1 : Math.sqrt(dx * dx + dy * dy);
-
-    while (true) {
-      coords[generate1D([
-        coord[0],
-        coord[1]
-      ])] = 1 - Math.abs(err - dx + dy) / ed;
-
-      e2 = err;
-      x2 = coord[0];
-
-      if (2 * e2 >= -dx) {
-        if (coord[0] === coord[2]) {
-          break;
-        }
-
-        if (e2 + dy < ed) {
-          coords[generate1D([
-            coord[0],
-            coord[1] + sy
-          ])] = 1 - (e2 + dy) / ed;
-        }
-
-        err -= dy;
-        coord[0] += sx;
-      }
-
-      if (2 * e2 <= dy) {
-        if (coord[1] === coord[3]) {
-          break;
-        }
-
-        if (dx - e2 < ed) {
-          coords[generate1D([
-            x2 + sx,
-            coord[1]
-          ])] = 1 - (dx - e2) / ed;
-        }
-
-        err += dx;
-        coord[1] += sy;
       }
     }
   }
