@@ -66,10 +66,14 @@ require([ // require js (import modules)
     controller = {
       grid: true,
 
-      drawFunction: draws['solvePath_Bresenham_line'],
+      // drawFunction: draws['solvePath_Bresenham_line'],
+      drawFunction: draws['solvePath_Bresenham_circle'],
       setDrawFunction: {
         line () {
           controller.drawFunction = draws['solvePath_Bresenham_line'];
+        },
+        circle () {
+          controller.drawFunction = draws['solvePath_Bresenham_circle'];
         }
       },
 
@@ -133,6 +137,7 @@ require([ // require js (import modules)
 
     // add draw actions
     gui.add(controller.setDrawFunction, 'line');
+    gui.add(controller.setDrawFunction, 'circle');
     gui.add(controller, 'clear');
 
     // darw-guide
@@ -219,10 +224,7 @@ require([ // require js (import modules)
       coords[3] = o2c[1];
 
       _.flowRight(
-        ([x1, y1, x2, y2]) => {
-          guide.moveTo(x1, y1);
-          guide.lineTo(x2, y2);
-        },
+        ([x1, y1, x2, y2]) => guide.drawRect(x1, y1, x2 - x1, y2 - y1),
         _.curryRight(_.map, 2)(c => c * env.pixelSize),
         _.flatten,
         _.curryRight(_.map, 2)(inverseHeight), // for pixijs

@@ -1,11 +1,32 @@
 define([
   env.cdn['utils']
 ], (utils) => {
-  return {
+  /* tools */
+
+  const draw = (memory, x, y) => memory[utils.generate1D([x, y])] = 1;
+  const drawToMemory = memory => _.curry(draw, 3)(memory);
+  
+  const swapInd = (arr, a, b) => {
+    let tmp = arr[a];
+    arr[a] = arr[b];
+    arr[b] = tmp;
+    return arr;
+  };
+  const correct = xs => [_.min(xs), _.max(xs)];
+
+  const swapInd12 = _.curryRight(swapInd, 3)(1, 2);
+  const correctedCoord = _.flowRight(
+    swapInd12,
+    _.flatten,
+    _.curryRight(_.map, 2)(correct),
+    _.curryRight(_.chunk, 2)(2),
+    swapInd12
+  );
+
+  return { // return draw functions
     /**
-     * draw path (DDA line drawing algorithm)
+     * draw line (DDA line drawing algorithm)
      * 
-     * @param coord input coord
      */
     solvePath_DDA (coord, memory) {
       // init constants
@@ -26,18 +47,14 @@ define([
 
       let diffSign = 1 | Math.sign(diff);
 
+      const drawing = drawToMemory(memory);
+
       // drawing path loop
       for (let i = 0; i * diffSign <= diff * diffSign; i += diffSign) {
         if (isXDominant) {
-          memory[utils.generate1D([
-            coord[0] + i,
-            coord[1] + Math.round(addSlope)
-          ])] = 1;
+          drawing(memory, coord[0] + i, coord[1] + Math.round(addSlope));
         } else {
-          memory[utils.generate1D([
-            coord[0] + Math.round(addSlope),
-            coord[1] + i
-          ])] = 1;
+          drawing(coord[0] + Math.round(addSlope), coord[1] + i);
         }
 
         addSlope += slope * diffSign;
@@ -45,9 +62,8 @@ define([
     },
 
     /**
-     * draw path (Bresenham line drawing algorithm)
+     * draw line (Bresenham line drawing algorithm)
      * 
-     * @param coord input coord
      */
     solvePath_Bresenham_line (coord, memory) {
       // init constants
@@ -65,10 +81,7 @@ define([
 
       // drawing path loop
       for (let i = 0; i * diffSign <= diff * diffSign; i += diffSign) {
-        memory[utils.generate1D([ // draw
-          coord[0] + i * isXDominant,
-          coord[1] + i * !isXDominant
-        ])] = 1;
+        draw(memory, coord[0] + i * isXDominant, coord[1] + i * !isXDominant);
 
         if (isXDominant) {
           if (prev >= 0) { // calculate p_{i + 1} (new p)
@@ -84,6 +97,53 @@ define([
           }
 
           prev += dx2;
+        }
+      }
+    },
+
+    /**
+     * draw circle (using Bresenham algorithm)
+     * 
+     */
+    solvePath_Bresenham_circle (coord, memory) {
+      // init
+      coord = correctedCoord(coord);
+
+      const drawing = drawToMemory(memory);
+
+      // circle plot function
+      const plotting = ([x, y]) => {
+        drawing(coord[0] + x, coord[1] + y);
+        drawing(coord[0] - x, coord[1] + y);
+        drawing(coord[0] + x, coord[1] - y);
+        drawing(coord[0] - x, coord[1] - y);
+
+        drawing(coord[0] + y, coord[1] + x);
+        drawing(coord[0] + y, coord[1] - x);
+        drawing(coord[0] - y, coord[1] + x);
+        drawing(coord[0] - y, coord[1] - x);
+      }
+
+      // calculate radius
+      const dx = Math.abs(coord[0] - coord[2]), dy = Math.abs(coord[1] - coord[3]);
+      const rad = _.toSafeInteger(_.min([dx, dy]) / 2);
+
+      // set origin location
+      coord[0] += rad;
+      coord[1] += rad;
+
+      // calculate p_0
+      let prev = 5 / 4 - rad;
+
+      // calculate path
+      for (let x = 0, y = rad; x <= y; x++) {
+        plotting([x, y]);
+
+        if (prev < 0) {
+          prev += 2 * x + 1;
+        } else {
+          y--;
+          prev += 2 * (x - y) + 1;
         }
       }
     }
