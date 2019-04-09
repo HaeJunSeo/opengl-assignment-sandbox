@@ -5,28 +5,17 @@
  * @since April 2, 2019
  */
 
-/* set global environment variables */
-const env = {
-  width: 40, height: 40,
-  pixelSize: 10,
-
-  controller: {
-    antialias: true,
-    grid: true,
-    line: false
-  }
-};
-
+/* set global variables */
 let app, coordMsgEl, performanceMsgEl;
 let gui;
 
 let coords, changed = false;
 
 require([ // require js (import modules)
-  'https://cdnjs.cloudflare.com/ajax/libs/async/2.6.1/async.min.js', // straight-forward function
-  'https://cdnjs.cloudflare.com/ajax/libs/pixi.js/4.8.6/pixi.min.js', // WebGL
-  'https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.11/lodash.min.js', // functional programming
-  'https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.6/dat.gui.min.js' // GUI
+  env.cdn['async'],
+  env.cdn['pixijs'],
+  env.cdn['lodash'],
+  env.cdn['datGUI']
 ], (async, PIXI, _, dat) => {
   async.waterfall([
     init,
@@ -129,8 +118,7 @@ require([ // require js (import modules)
 
     // solve path
     // performance(solvePath_DDA, coord);
-    // performance(solvePath_Bresenham, coord);
-    solvePath_BresenhamWithAntialias(coord);
+    performance(solvePath_Bresenham, coord);
 
     cb(null, line);
   }
