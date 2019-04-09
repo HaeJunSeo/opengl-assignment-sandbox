@@ -7,7 +7,7 @@ define([
      * 
      * @param coord input coord
      */
-    solvePath_DDA (coord, coords) {
+    solvePath_DDA (coord, memory) {
       // init constants
       const dx = coord[2] - coord[0], adx = Math.abs(dx);
       const dy = coord[3] - coord[1], ady = Math.abs(dy);
@@ -29,12 +29,12 @@ define([
       // drawing path loop
       for (let i = 0; i * diffSign <= diff * diffSign; i += diffSign) {
         if (isXDominant) {
-          coords[utils.generate1D([
+          memory[utils.generate1D([
             coord[0] + i,
             coord[1] + Math.round(addSlope)
           ])] = 1;
         } else {
-          coords[utils.generate1D([
+          memory[utils.generate1D([
             coord[0] + Math.round(addSlope),
             coord[1] + i
           ])] = 1;
@@ -49,7 +49,7 @@ define([
      * 
      * @param coord input coord
      */
-    solvePath_Bresenham (coord, coords) {
+    solvePath_Bresenham_line (coord, memory) {
       // init constants
       const dx = coord[2] - coord[0], adx = Math.abs(dx), dx2 = adx << 1;
       const dy = coord[3] - coord[1], ady = Math.abs(dy), dy2 = ady << 1;
@@ -65,7 +65,7 @@ define([
 
       // drawing path loop
       for (let i = 0; i * diffSign <= diff * diffSign; i += diffSign) {
-        coords[utils.generate1D([ // draw
+        memory[utils.generate1D([ // draw
           coord[0] + i * isXDominant,
           coord[1] + i * !isXDominant
         ])] = 1;

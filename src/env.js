@@ -9,12 +9,10 @@ const env = {
     'draws': 'src/draws.js'
   },
 
-  width: 40, height: 40,
-  pixelSize: 10,
+  width: 100, height: 100,
+  pixelSize: 5,
 
   controller: {
-    antialias: true,
-    grid: true,
-    line: false
+    grid: true
   }
 };

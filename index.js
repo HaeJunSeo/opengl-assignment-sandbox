@@ -9,7 +9,9 @@
 let app, coordMsgEl;
 let gui;
 
-let coords, changed = false;
+let coords = [0, 0, 0, 0], isDragging = false, drawFunction, guide;
+
+let memory, memoryChanged = false;
 
 require([ // require js (import modules)
   env.cdn['async'],
@@ -23,7 +25,6 @@ require([ // require js (import modules)
   async.waterfall([
     init,
     renderInit,
-    render,
     setTickers
   ], err => {
     if (err) {
@@ -32,8 +33,13 @@ require([ // require js (import modules)
 
     console.log('Initialized!');
 
-    window.addEventListener('hashchange', () => location.reload());
-    app.view.addEventListener('pointermove', mouseMove);
+    // add events
+
+    _.forEach([
+      ['pointermove', mouseMove],
+      ['pointerdown', mouseDown],
+      ['pointerup', mouseUp]
+    ], _.spread(_.bind(app.view.addEventListener, app.view)));
   });
 
   function init (cb) {
@@ -83,10 +89,10 @@ require([ // require js (import modules)
     // add to the GUI panel
     gui.add(env.controller, 'grid').onChange(b => g.visible = b);
 
-    /* init coords array */
-    coords = new Proxy(_.fill(Array(width * height), 0), {
+    /* init memory array */
+    memory = new Proxy(_.fill(Array(width * height), 0), {
       set (...args) {
-        changed = true;
+        memoryChanged = true;
         return Reflect.set(...args);
       }
     });
@@ -94,37 +100,20 @@ require([ // require js (import modules)
     /* init msg elements */
 
     coordMsgEl = document.createElement('p');
+    coordMsgEl.innerText = `[0, 0]: ${memory[utils.generate1D([0, 0])]}`;
     document.body.appendChild(coordMsgEl);
+
+    /* init draw function and guide */
+
+    drawFunction = draws.solvePath_Bresenham_line;
+
+    guide = new PIXI.Graphics(); // draw guide
+    app.stage.addChild(guide);
 
     cb();
   }
 
-  function render (cb) {
-    // init input coord ([x1, y1, x2, y2])
-    const hash = window.location.hash;
-    let coord = (hash === '') ? [10, 12, 4, 26] : _.map(hash.slice(1).split(','), _.toInteger);
-
-    // draw line
-    const line = new PIXI.Graphics();
-    line.lineStyle(1, 0xff0000);
-    line.moveTo((coord[0] + 0.5) * env.pixelSize, (env.height - coord[1] - 0.5) * env.pixelSize);
-    line.lineTo((coord[2] + 0.5) * env.pixelSize, (env.height - coord[3] - 0.5) * env.pixelSize);
-    line.visible = false;
-
-    // add to the GUI panel
-    gui.add(env.controller, 'line').onChange(b => line.visible = b);
-
-    // set title
-    document.title = `[${coord}]`;
-
-    // solve path
-    // utils.performance(draws.solvePath_DDA, coord, coords);
-    utils.performance(draws.solvePath_Bresenham, coord, coords);
-
-    cb(null, line);
-  }
-
-  function setTickers (line, cb) {
+  function setTickers (cb) {
     /* draw pixel */
     const g = new PIXI.Graphics();
     const { pixelSize } = env;
@@ -138,22 +127,22 @@ require([ // require js (import modules)
     );
 
     const generate2dQuadrant = _.flowRight(
-      ([x, y]) => [x, env.height - y], // set quadrant coordinates (origin: [leftmost, bottommost])
+      toQuadrantCoords,
       utils.generate2D
     );
 
     app.ticker.add(() => { // callback called each frame
-      if (changed === true) { // caching
-        changed = false;
+      if (memoryChanged === true) { // caching
+        memoryChanged = false;
 
         g.clear();
 
-        _.forEach(coords, (coord, ind) => {
-          if (coord !== 0) {
-            g.beginFill(0xffffff - 0x111111 * _.toSafeInteger(coord * 15));
+        _.forEach(memory, (intensity, ind) => {
+          if (intensity !== 0) {
+            g.beginFill(0xffffff - 0x111111 * _.toSafeInteger(intensity * 15));
 
             renderDots([
-              ...generate2dQuadrant(ind), // generate quadrant coords (using 1d coord)
+              ...generate2dQuadrant(ind), // generate quadrant memory (using 1d quadrant coords)
               1, 1
             ]);
           }
@@ -161,15 +150,70 @@ require([ // require js (import modules)
       }
     });
 
-    // add
-    app.stage.addChild(line);
-
     cb();
   }
 
-  /* events */
+  /* tools */
+
+  /**
+   * convert mouse offset to coord functor
+   * 
+   * @param {[Number, Number]} offset
+   */
+  function offsetToCoord ([offsetX, offsetY]) {
+    return _.map([offsetX / env.pixelSize, env.height - offsetY / env.pixelSize], _.toInteger);
+  }
+
+  /**
+   * convert coordinates to quadrant coordinates (origin: [leftmost, bottommost])
+   * 
+   * @param {[Number, Number]} coords
+   */
+  function toQuadrantCoords ([x, y]) {
+    return [x, env.height - y];
+  }
+
+  /* event handlers */
+
   function mouseMove ({ offsetX, offsetY }) {
-    const coord = _.map([offsetX / env.pixelSize, env.height - offsetY / env.pixelSize], _.toInteger);
-    coordMsgEl.innerText = `[${coord}]: ${coords[utils.generate1D(coord)]}`;
+    const o2c = offsetToCoord([offsetX, offsetY]);
+    coordMsgEl.innerText = `[${o2c}]: ${memory[utils.generate1D(o2c)]}`;
+
+    if (isDragging === true) {
+      guide.clear();
+      guide.lineStyle(2, 0xff0000);
+
+      const o2c = offsetToCoord([offsetX, offsetY]);
+  
+      coords[2] = o2c[0];
+      coords[3] = o2c[1];
+
+      // guide.moveTo(toQuadrantCoords)
+
+      guide.moveTo(coords[0] * env.pixelSize, (env.height - coords[1]) * env.pixelSize);
+      guide.lineTo(coords[2] * env.pixelSize, (env.height - coords[3]) * env.pixelSize);
+    }
+  }
+
+  function mouseDown ({ offsetX, offsetY}) {
+    const o2c = offsetToCoord([offsetX, offsetY]);
+
+    coords[0] = o2c[0];
+    coords[1] = o2c[1];
+
+    isDragging = true;
+  }
+
+  function mouseUp ({ offsetX, offsetY }) {
+    const o2c = offsetToCoord([offsetX, offsetY]);
+    
+    isDragging = false;
+    
+    guide.clear();
+
+    coords[2] = o2c[0];
+    coords[3] = o2c[1];
+
+    drawFunction(coords, memory);
   }
 });
