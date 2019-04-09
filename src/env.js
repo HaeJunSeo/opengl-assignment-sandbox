@@ -10,9 +10,5 @@ const env = {
   },
 
   width: 100, height: 100,
-  pixelSize: 5,
-
-  controller: {
-    grid: true
-  }
+  pixelSize: 5
 };

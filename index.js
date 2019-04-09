@@ -7,11 +7,11 @@
 
 /* set global variables */
 let app, msgEl;
-let gui;
+let gui, controller;
 
-let coords = [0, 0, 0, 0], isDragging = false, drawFunction, guide;
+let coords = [0, 0, 0, 0], isDragging = false, guide;
 
-let memory, memoryChanged = false;
+let memory, memoryChanged = false, originMemory;
 
 require([ // require js (import modules)
   env.cdn['async'],
@@ -60,7 +60,31 @@ require([ // require js (import modules)
     document.body.appendChild(app.view); // append to the DOM
 
     /* GUI module init */
+
     gui = new dat.GUI();
+
+    controller = {
+      grid: true,
+
+      drawFunction: draws['solvePath_Bresenham_line'],
+      setDrawFunction: {
+        line () {
+          controller.drawFunction = draws['solvePath_Bresenham_line'];
+        }
+      },
+
+      clear () {
+        // re-init memory array
+        memory = new Proxy(_.fill(Array(env.width * env.height), 0), {
+          set (...args) {
+            memoryChanged = true;
+            return Reflect.set(...args);
+          }
+        });
+
+        memoryChanged = true;
+      }
+    };
 
     cb();
   }
@@ -88,9 +112,10 @@ require([ // require js (import modules)
     app.stage.addChild(g);
 
     // add to the GUI panel
-    gui.add(env.controller, 'grid').onChange(b => g.visible = b);
+    gui.add(controller, 'grid').onChange(b => g.visible = b);
 
     /* init memory array */
+
     memory = new Proxy(_.fill(Array(width * height), 0), {
       set (...args) {
         memoryChanged = true;
@@ -104,11 +129,14 @@ require([ // require js (import modules)
     msgEl.innerText = `[0, 0]: ${memory[utils.generate1D([0, 0])]}`;
     document.body.appendChild(msgEl);
 
-    /* init draw function and guide */
+    /* init draw function and darw-guide */
 
-    drawFunction = draws.solvePath_Bresenham_line;
+    // add draw actions
+    gui.add(controller.setDrawFunction, 'line');
+    gui.add(controller, 'clear');
 
-    guide = new PIXI.Graphics(); // draw guide
+    // darw-guide
+    guide = new PIXI.Graphics();
     app.stage.addChild(guide);
 
     cb();
@@ -224,7 +252,7 @@ require([ // require js (import modules)
     coords[2] = o2c[0];
     coords[3] = o2c[1];
 
-    drawFunction(coords, memory);
+    controller.drawFunction(coords, memory);
   }
 
   function mouseOut () {
