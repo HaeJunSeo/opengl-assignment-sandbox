@@ -164,7 +164,7 @@ define([
       const drawLine = _.curryRight(drawFunctions.solvePath_Bresenham_line, 2)(memory);
 
       // calculate intersection point (ip)
-      const ip = [coord[0] + _.toSafeInteger((coord[2] - coord[0]) / 2), coord[3]];
+      const ip = coord[0] + _.toSafeInteger((coord[2] - coord[0]) / 2);
 
       // draw
       drawLine([coord[0], coord[1], coord[2], coord[1]]);
