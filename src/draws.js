@@ -143,8 +143,10 @@ define([
      * 
      */
     solvePath_Bresenham_rectangle (coord, memory) {
+      // define line drawing function
       const drawLine = _.curryRight(drawFunctions.solvePath_Bresenham_line, 2)(memory);
 
+      // draw
       _.forEach([
         [coord[0], coord[1], coord[0], coord[3]],
         [coord[0], coord[1], coord[2], coord[1]],
@@ -158,7 +160,16 @@ define([
      * 
      */
     solvePath_Bresenham_triangle (coord, memory) {
-      //
+      // define line drawing function
+      const drawLine = _.curryRight(drawFunctions.solvePath_Bresenham_line, 2)(memory);
+
+      // calculate intersection point (ip)
+      const ip = [coord[0] + _.toSafeInteger((coord[2] - coord[0]) / 2), coord[3]];
+
+      // draw
+      drawLine([coord[0], coord[1], coord[2], coord[1]]);
+      drawLine([coord[0], coord[1], ip, coord[3]]);
+      drawLine([coord[2], coord[1], ip, coord[3]]);
     }
   };
 

@@ -71,7 +71,8 @@ require([ // require js (import modules)
       drawFunctions: {
         'line': 'solvePath_Bresenham_line',
         'circle': 'solvePath_Bresenham_circle',
-        'rectangle': 'solvePath_Bresenham_rectangle'
+        'rectangle': 'solvePath_Bresenham_rectangle',
+        'triangle': 'solvePath_Bresenham_triangle'
       },
 
       clear () {
