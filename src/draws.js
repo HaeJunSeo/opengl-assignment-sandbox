@@ -5,24 +5,6 @@ define([
 
   const draw = (memory, x, y) => memory[utils.generate1D([x, y])] = 1;
   const drawToMemory = memory => _.curry(draw, 3)(memory);
-  
-  const swapInd = (arr, a, b) => {
-    let tmp = arr[a];
-    arr[a] = arr[b];
-    arr[b] = tmp;
-    return arr;
-  };
-  const correct = xs => [_.min(xs), _.max(xs)];
-
-  // circle
-  const swapInd12 = _.curryRight(swapInd, 3)(1, 2);
-  const correctedCoord = _.flowRight(
-    swapInd12,
-    _.flatten,
-    _.curryRight(_.map, 2)(correct),
-    _.curryRight(_.chunk, 2)(2),
-    swapInd12
-  );
 
   const drawFunctions = { // return draw functions
     /**
@@ -117,31 +99,28 @@ define([
      * 
      */
     solvePath_Bresenham_circle (coord, memory) {
-      // init
-      coord = correctedCoord(coord);
-
-      const drawing = drawToMemory(memory);
-
-      // circle plot function
-      const plotting = ([x, y]) => {
-        drawing(coord[0] + x, coord[1] + y);
-        drawing(coord[0] - x, coord[1] + y);
-        drawing(coord[0] + x, coord[1] - y);
-        drawing(coord[0] - x, coord[1] - y);
-
-        drawing(coord[0] + y, coord[1] + x);
-        drawing(coord[0] + y, coord[1] - x);
-        drawing(coord[0] - y, coord[1] + x);
-        drawing(coord[0] - y, coord[1] - x);
-      }
-
       // calculate radius
       const dx = Math.abs(coord[0] - coord[2]), dy = Math.abs(coord[1] - coord[3]);
       const rad = _.toSafeInteger(_.min([dx, dy]) / 2);
 
       // set origin location
-      coord[0] += rad;
-      coord[1] += rad;
+      const cx = coord[0] + rad * Math.sign(coord[2] - coord[0]),
+        cy = coord[1] + rad * Math.sign(coord[3] - coord[1]);
+
+      const drawing = drawToMemory(memory);
+
+      // circle plot function
+      const plotting = ([x, y]) => {
+        drawing(cx + x, cy + y);
+        drawing(cx - x, cy + y);
+        drawing(cx + x, cy - y);
+        drawing(cx - x, cy - y);
+
+        drawing(cx + y, cy + x);
+        drawing(cx + y, cy - x);
+        drawing(cx - y, cy + x);
+        drawing(cx - y, cy - x);
+      }
 
       // calculate p_0
       let prev = 5 / 4 - rad;
