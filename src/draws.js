@@ -157,7 +157,7 @@ define(() => {
       ];
 
       for (coord of coords) {
-        path = path.concat(drawFunctions.solvePath_Bresenham_line(coord));
+        path = _.concat(path, drawFunctions.solvePath_Bresenham_line(coord));
       }
 
       return path;
@@ -176,9 +176,12 @@ define(() => {
       const ip = coord[0] + _.toSafeInteger((coord[2] - coord[0]) / 2);
 
       // draw
-      path = path.concat(drawLine([coord[0], coord[1], coord[2], coord[1]]));
-      path = path.concat(drawLine([coord[0], coord[1], ip, coord[3]]));
-      path = path.concat(drawLine([coord[2], coord[1], ip, coord[3]]));
+      path = _.concat(
+        path,
+        drawLine([coord[0], coord[1], coord[2], coord[1]]),
+        drawLine([coord[0], coord[1], ip, coord[3]]),
+        drawLine([coord[2], coord[1], ip, coord[3]])
+      );
 
       return path;
     }
