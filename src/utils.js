@@ -31,10 +31,14 @@ define([
      * @param args arguments
      */
     performance (cb, ...args) {
+      let ret = null;
       const s = window.performance.now();
-      cb(...args);
+
+      ret = cb(...args);
 
       console.log(`⏱ ${cb.name} >> ${window.performance.now() - s}ms`);
+
+      return ret;
     }
   }
 });

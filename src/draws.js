@@ -1,17 +1,12 @@
-define([
-  env.cdn['utils']
-], (utils) => {
-  /* tools */
-
-  const draw = (memory, x, y) => memory[utils.generate1D([x, y])] = 1;
-  const drawToMemory = memory => _.curry(draw, 3)(memory);
-
+define(() => {
   const drawFunctions = { // return draw functions
     /**
      * draw line (DDA line drawing algorithm)
      * 
      */
-    solvePath_DDA (coord, memory) {
+    solvePath_DDA (coord) {
+      const path = [];
+
       // init constants
       const dx = coord[2] - coord[0], adx = Math.abs(dx);
       const dy = coord[3] - coord[1], ady = Math.abs(dy);
@@ -30,25 +25,27 @@ define([
 
       let diffSign = 1 | Math.sign(diff);
 
-      const drawing = drawToMemory(memory);
-
-      // drawing path loop
+      // calculate path loop
       for (let i = 0; i * diffSign <= diff * diffSign; i += diffSign) {
         if (isXDominant) {
-          drawing(coord[0] + i, coord[1] + Math.round(addSlope));
+          path.push([coord[0] + i, coord[1] + Math.round(addSlope)]);
         } else {
-          drawing(coord[0] + Math.round(addSlope), coord[1] + i);
+          path.push(coord[0] + Math.round(addSlope), coord[1] + i);
         }
 
         addSlope += slope * diffSign;
       }
+
+      return path;
     },
 
     /**
      * draw line (Bresenham line drawing algorithm)
      * 
      */
-    solvePath_Bresenham_line (coord, memory) {
+    solvePath_Bresenham_line (coord) {
+      const path = [];
+
       // init constants
       const dx = coord[2] - coord[0], adx = Math.abs(dx), dx2 = adx << 1;
       const dy = coord[3] - coord[1], ady = Math.abs(dy), dy2 = ady << 1;
@@ -62,9 +59,9 @@ define([
       // calculate p_i (prev p)
       let prev = isXDominant ? dy2 - adx : dx2 - ady;
 
-      // drawing path loop
+      // calculate path loop
       while (true) {
-        draw(memory, coord[0], coord[1]);
+        path.push([coord[0], coord[1]]);
 
         if (isXDominant) {
           if (coord[0] === coord[2]) {
@@ -92,13 +89,17 @@ define([
           prev += dx2;
         }
       }
+
+      return path;
     },
 
     /**
      * draw circle (using Bresenham algorithm)
      * 
      */
-    solvePath_Bresenham_circle (coord, memory) {
+    solvePath_Bresenham_circle (coord) {
+      const path = [];
+
       // calculate radius
       const dx = Math.abs(coord[0] - coord[2]), dy = Math.abs(coord[1] - coord[3]);
       const rad = _.toSafeInteger(_.min([dx, dy]) / 2);
@@ -107,19 +108,17 @@ define([
       const cx = coord[0] + rad * Math.sign(coord[2] - coord[0]),
         cy = coord[1] + rad * Math.sign(coord[3] - coord[1]);
 
-      const drawing = drawToMemory(memory);
-
       // circle plot function
       const plotting = ([x, y]) => {
-        drawing(cx + x, cy + y);
-        drawing(cx - x, cy + y);
-        drawing(cx + x, cy - y);
-        drawing(cx - x, cy - y);
+        path.push([cx + x, cy + y]);
+        path.push([cx - x, cy + y]);
+        path.push([cx + x, cy - y]);
+        path.push([cx - x, cy - y]);
 
-        drawing(cx + y, cy + x);
-        drawing(cx + y, cy - x);
-        drawing(cx - y, cy + x);
-        drawing(cx - y, cy - x);
+        path.push([cx + y, cy + x]);
+        path.push([cx + y, cy - x]);
+        path.push([cx - y, cy + x]);
+        path.push([cx - y, cy - x]);
       }
 
       // calculate p_0
@@ -136,40 +135,52 @@ define([
           prev += 2 * (x - y) + 1;
         }
       }
+
+      console.log(path);
+
+      return path;
     },
 
     /**
      * draw rectangle (using Bresenham algorithm)
      * 
      */
-    solvePath_Bresenham_rectangle (coord, memory) {
-      // define line drawing function
-      const drawLine = _.curryRight(drawFunctions.solvePath_Bresenham_line, 2)(memory);
+    solvePath_Bresenham_rectangle (coord) {
+      let path = [];
 
-      // draw
-      _.forEach([
+      // calculate coords
+      const coords = [
         [coord[0], coord[1], coord[0], coord[3]],
         [coord[0], coord[1], coord[2], coord[1]],
         [coord[0], coord[3], coord[2], coord[3]],
         [coord[2], coord[1], coord[2], coord[3]]
-      ], c => drawLine(c));
+      ];
+
+      for (coord of coords) {
+        path = path.concat(drawFunctions.solvePath_Bresenham_line(coord));
+      }
+
+      return path;
     },
 
     /**
      * draw triangle (using Bresenham algorithm)
      * 
      */
-    solvePath_Bresenham_triangle (coord, memory) {
-      // define line drawing function
-      const drawLine = _.curryRight(drawFunctions.solvePath_Bresenham_line, 2)(memory);
+    solvePath_Bresenham_triangle (coord) {
+      const drawLine = drawFunctions.solvePath_Bresenham_line;
+
+      let path = [];
 
       // calculate intersection point (ip)
       const ip = coord[0] + _.toSafeInteger((coord[2] - coord[0]) / 2);
 
       // draw
-      drawLine([coord[0], coord[1], coord[2], coord[1]]);
-      drawLine([coord[0], coord[1], ip, coord[3]]);
-      drawLine([coord[2], coord[1], ip, coord[3]]);
+      path = path.concat(drawLine([coord[0], coord[1], coord[2], coord[1]]));
+      path = path.concat(drawLine([coord[0], coord[1], ip, coord[3]]));
+      path = path.concat(drawLine([coord[2], coord[1], ip, coord[3]]));
+
+      return path;
     }
   };
 

@@ -10,8 +10,9 @@ let app, msgEl;
 let gui, controller;
 
 let coords = [0, 0, 0, 0], isDragging = false, guide;
+let memory, memoryChanged = false;
 
-let memory, memoryChanged = false, originMemory;
+let shapes = []; // [{ function: 'draw function name', data: [<coords>] }]
 
 require([ // require js (import modules)
   env.cdn['async'],
@@ -67,7 +68,7 @@ require([ // require js (import modules)
       grid: true,
 
       drawFunction: draws['solvePath_Bresenham_line'],
-      drawFunctionName: 'line',
+      drawFunctionName: 'solvePath_Bresenham_line',
       drawFunctions: {
         'line': 'solvePath_Bresenham_line',
         'circle': 'solvePath_Bresenham_circle',
@@ -85,8 +86,23 @@ require([ // require js (import modules)
         });
 
         memoryChanged = true;
-      }
+      },
+
+      x: 0
     };
+
+    const transformFolder = gui.addFolder('transformation');
+    transformFolder.add(controller, 'x').onChange(value => {
+      clear();
+
+      _.forEach(shapes, shape => {
+        const shapeData = _.get(shape, 'data');
+
+        // shape coords to 2-dim matrix coord
+        // 'shape matrix' dot 'translation matrix'
+        // append to memory
+      });
+    });
 
     cb();
   }
@@ -207,6 +223,17 @@ require([ // require js (import modules)
     return [x, env.height - y];
   }
 
+  /**
+   * append to buffer
+   * 
+   * @param {[[Number, Number]]} coords coordinates
+   */
+  function appendToBuffer (coords) {
+    _.forEach(coords, coord => {
+      memory[utils.generate1D(coord)] = 1;
+    });
+  }
+
   /* event handlers */
 
   function mouseMove ({ offsetX, offsetY }) {
@@ -255,7 +282,11 @@ require([ // require js (import modules)
       coords[2] = o2c[0];
       coords[3] = o2c[1];
   
-      utils.performance(controller.drawFunction, coords, memory);
+      // draw shape
+      appendToBuffer(utils.performance(controller.drawFunction, coords, memory));
+      shapes.push({ function: controller.drawFunctionName, data: _.cloneDeep(coords) });
+
+      console.log(shapes);
     }
   }
 
