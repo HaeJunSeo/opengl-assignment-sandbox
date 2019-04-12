@@ -10,9 +10,7 @@ let app, msgEl;
 let gui, controller;
 
 let coords = [0, 0, 0, 0], isDragging = false, guide;
-let memory, memoryChanged = false;
-
-let shapes = []; // [{ function: 'draw function name', data: [<coords>] }]
+let buffer, bufferChanged = false;
 
 require([ // require js (import modules)
   env.cdn['async'],
@@ -76,33 +74,65 @@ require([ // require js (import modules)
         'triangle': 'solvePath_Bresenham_triangle'
       },
 
+      // clear buffer
       clear () {
-        // re-init memory array
-        memory = new Proxy(_.fill(Array(env.width * env.height), 0), {
+        // re-init buffer array
+        buffer = new Proxy(_.fill(Array(env.width * env.height), 0), {
           set (...args) {
-            memoryChanged = true;
+            bufferChanged = true;
             return Reflect.set(...args);
           }
         });
 
-        memoryChanged = true;
+        bufferChanged = true;
       },
 
-      x: 0
+      // transformation
+      target: null,
+      translation: {
+        x: 0, y: 0
+      },
+      scaling: {
+        x: 0, y: 0
+      },
+      rotation: 0 // theta
+    };
+
+    const getTransformMatrix = () => (({
+      translation: { x: tx, y: ty },
+      scaling: { x: sx, y: sy },
+      rotation: t
+    }) => [
+      [1, 0, 0],
+      [0, 1, 0],
+      [tx, ty, 1]
+    ])(controller);
+    
+    const conv3D = _.flowRight(
+      _.partial(_.forEach, _, data => data.push(1)),
+      _.partial(_.chunk, _, 2)
+    );
+
+    const changeCB = () => {
+      // clear buffer
+      controller.clear();
+
+      _.flowRight(
+        appendToBuffer,
+        draws[controller.drawFunctionName],
+        _.flatten,
+        _.partial(_.map, _, _.initial),
+        _.partial(utils.dot, _, getTransformMatrix()),
+        conv3D
+      )(coords);
     };
 
     const transformFolder = gui.addFolder('transformation');
-    transformFolder.add(controller, 'x').onChange(value => {
-      clear();
-
-      _.forEach(shapes, shape => {
-        const shapeData = _.get(shape, 'data');
-
-        // shape coords to 2-dim matrix coord
-        // 'shape matrix' dot 'translation matrix'
-        // append to memory
-      });
-    });
+    transformFolder.add(controller.translation, 'x', -100, 100, 1).onChange(changeCB).name('translation x');
+    transformFolder.add(controller.translation, 'y', -100, 100, 1).onChange(changeCB).name('translation y');
+    transformFolder.add(controller.scaling, 'x', -100, 100, 1).onChange(changeCB).name('scaling x');
+    transformFolder.add(controller.scaling, 'y', -100, 100, 1).onChange(changeCB).name('scaling y');
+    transformFolder.add(controller, 'rotation', -100, 100, 1).onChange(changeCB).name('rotation theta');
 
     cb();
   }
@@ -132,11 +162,11 @@ require([ // require js (import modules)
     // add to the GUI panel
     gui.add(controller, 'grid').onChange(b => g.visible = b);
 
-    /* init memory array */
+    /* init buffer array */
 
-    memory = new Proxy(_.fill(Array(width * height), 0), {
+    buffer = new Proxy(_.fill(Array(width * height), 0), {
       set (...args) {
-        memoryChanged = true;
+        bufferChanged = true;
         return Reflect.set(...args);
       }
     });
@@ -144,7 +174,7 @@ require([ // require js (import modules)
     /* init msg elements */
 
     msgEl = document.createElement('p');
-    msgEl.innerText = `[0, 0]: ${memory[utils.generate1D([0, 0])]}`;
+    msgEl.innerText = `[0, 0]: ${buffer[utils.generate1D([0, 0])]}`;
     document.body.appendChild(msgEl);
 
     /* init draw function and darw-guide */
@@ -154,7 +184,7 @@ require([ // require js (import modules)
       .onChange(name => controller.drawFunction = draws[name])
       .name('draw');
 
-    gui.add(controller, 'clear');
+    gui.add(controller, 'clear').name('clear');
 
     // darw-guide
     guide = new PIXI.Graphics();
@@ -173,7 +203,7 @@ require([ // require js (import modules)
     // tools
     const renderDots = _.flowRight(
       _.spread(_.bind(g.drawRect, g)), // draw pixel
-      _.curryRight(_.map, 2)(arg => arg * pixelSize) // mapping factor
+      _.partial(_.map, _, arg => arg * pixelSize) // mapping factor
     );
 
     const generate2dQuadrant = _.flowRight(
@@ -182,17 +212,17 @@ require([ // require js (import modules)
     );
 
     app.ticker.add(() => { // callback called each frame
-      if (memoryChanged === true) { // caching
-        memoryChanged = false;
+      if (bufferChanged === true) { // caching
+        bufferChanged = false;
 
         g.clear();
 
-        _.forEach(memory, (intensity, ind) => {
+        _.forEach(buffer, (intensity, ind) => {
           if (intensity !== 0) {
             g.beginFill(0xffffff - 0x111111 * _.toSafeInteger(intensity * 15));
 
             renderDots([
-              ...generate2dQuadrant(ind), // generate quadrant memory (using 1d quadrant coords)
+              ...generate2dQuadrant(ind), // generate quadrant buffer (using 1d quadrant coords)
               1, 1
             ]);
           }
@@ -230,7 +260,7 @@ require([ // require js (import modules)
    */
   function appendToBuffer (coords) {
     _.forEach(coords, coord => {
-      memory[utils.generate1D(coord)] = 1;
+      buffer[utils.generate1D(coord)] = 1;
     });
   }
 
@@ -238,7 +268,7 @@ require([ // require js (import modules)
 
   function mouseMove ({ offsetX, offsetY }) {
     const o2c = offsetToCoord([offsetX, offsetY]);
-    msgEl.innerText = `[${o2c}]: ${memory[utils.generate1D(o2c)]}`;
+    msgEl.innerText = `[${o2c}]: ${buffer[utils.generate1D(o2c)]}`;
 
     if (isDragging === true) {
       // render draw guide
@@ -252,10 +282,10 @@ require([ // require js (import modules)
 
       _.flowRight(
         ([x1, y1, x2, y2]) => guide.drawRect(x1, y1, x2 - x1, y2 - y1),
-        _.curryRight(_.map, 2)(c => c * env.pixelSize),
+        _.partial(_.map, _, c => c * env.pixelSize),
         _.flatten,
-        _.curryRight(_.map, 2)(inverseHeight), // for pixijs
-        _.curryRight(_.chunk, 2)(2)
+        _.partial(_.map, _, inverseHeight), // for webgl library (pixi js)
+        _.partial(_.chunk, _, 2)
       )(coords);
     }
   }
@@ -283,10 +313,10 @@ require([ // require js (import modules)
       coords[3] = o2c[1];
   
       // draw shape
-      appendToBuffer(utils.performance(controller.drawFunction, coords, memory));
-      shapes.push({ function: controller.drawFunctionName, data: _.cloneDeep(coords) });
+      appendToBuffer(utils.performance(controller.drawFunction, _.cloneDeep(coords)));
 
-      console.log(shapes);
+      // re-init
+      _.forEach(gui.__folders['transformation'].__controllers, c => c.setValue(0));
     }
   }
 
